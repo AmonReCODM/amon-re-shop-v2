@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import { getSession, onAuthStateChange, signOut } from './api/api';
 
 // On importe toutes nos pages
@@ -12,25 +13,30 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Ce `useEffect` se lance une seule fois au démarrage de l'application
+  // Ce `useEffect` s'exécute une seule fois au montage du composant.
   useEffect(() => {
-    // On vérifie s'il y a déjà une session active
-    getSession().then(({ data: { session } }) => {
+    // onAuthStateChange gère tous les événements d'authentification.
+    // Il se déclenche immédiatement avec la session en cours (event = 'INITIAL_SESSION')
+    // puis à chaque connexion (SIGNED_IN) ou déconnexion (SIGNED_OUT).
+    const { data: authListener } = onAuthStateChange((event, session) => {
       setSession(session);
+      // L'application est considérée comme initialisée après le premier événement.
       setIsInitialized(true);
+
+      // On affiche un toast uniquement pour les connexions et déconnexions explicites,
+      // et non pour la session initiale.
+      if (event === 'SIGNED_IN') {
+        toast.success('Connexion réussie ! Bienvenue !');
+      } else if (event === 'SIGNED_OUT') {
+        toast('Vous avez été déconnecté.', { icon: '👋' });
+      }
     });
 
-    // On met en place un "écouteur" qui réagit en temps réel
-    // si l'utilisateur se connecte ou se déconnecte
-    const { data: authListener } = onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    // Quand l'application se ferme, on nettoie l'écouteur
+    // On nettoie l'écouteur lorsque le composant est démonté.
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Le tableau de dépendances vide garantit que l'effet ne s'exécute qu'une fois.
   
   // La fonction qui décide quoi afficher
   const renderView = () => {
@@ -68,6 +74,7 @@ export default function App() {
 
   return (
     <main className="min-h-screen w-full flex items-center justify-center p-4 bg-[#4a604c]">
+      <Toaster />
       {renderView()}
     </main>
   );

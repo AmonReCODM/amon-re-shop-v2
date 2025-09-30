@@ -11,6 +11,15 @@ export default function ClientSignUpPage({ setView }) {
   // Met à jour l'état quand l'utilisateur tape dans un champ.
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  // Ajout de la fonction de validation du mot de passe.
+  const isPasswordStrong = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers;
+  };
+
   // Cette fonction est appelée quand l'utilisateur soumet le formulaire.
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,6 +28,12 @@ export default function ClientSignUpPage({ setView }) {
     // On vérifie que les mots de passe correspondent.
     if (formData.password !== formData.confirmPassword) {
       setError("Les mots de passe ne correspondent pas.");
+      return;
+    }
+
+    // On vérifie la force du mot de passe.
+    if (!isPasswordStrong(formData.password)) {
+      setError("Le mot de passe doit contenir au moins 8 caractères, dont une majuscule, une minuscule et un chiffre.");
       return;
     }
 

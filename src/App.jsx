@@ -1,60 +1,67 @@
 import React, { useState, useEffect } from 'react';
-import { getSession, onAuthStateChange, signOut } from './api/api';
+import { getSession, onAuthStateChange, signOut, getProfile } from './api/api';
 
 // On importe toutes nos pages
 import LandingPage from './pages/LandingPage';
 import ClientLoginPage from './pages/ClientLoginPage';
 import ClientSignUpPage from './pages/ClientSignUpPage';
-// Bientôt, nous ajouterons ClientDashboard ici
+import ClientDashboardPage from './pages/ClientDashboardPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 export default function App() {
   const [view, setView] = useState('landing');
   const [session, setSession] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Ce `useEffect` se lance une seule fois au démarrage de l'application
   useEffect(() => {
-    // On vérifie s'il y a déjà une session active
-    getSession().then(({ data: { session } }) => {
+    // onAuthStateChange est appelé au chargement initial ET à chaque changement de connexion.
+    // C'est la seule source de vérité pour l'état de l'authentification.
+    const { data: authListener } = onAuthStateChange(async (_event, session) => {
+      setIsLoading(true);
       setSession(session);
-      setIsInitialized(true);
+      setUserProfile(null); // On réinitialise le profil à chaque changement
+
+      if (session) {
+        // Si l'utilisateur est connecté, on récupère son profil.
+        const { data: profile, error } = await getProfile(session.user.id);
+
+        if (error) {
+          console.error("Erreur de récupération du profil:", error);
+          await signOut(); // On déconnecte en cas de problème
+        } else {
+          setUserProfile(profile);
+        }
+      }
+      setIsLoading(false); // Le chargement est terminé une fois la session et le profil traités.
     });
 
-    // On met en place un "écouteur" qui réagit en temps réel
-    // si l'utilisateur se connecte ou se déconnecte
-    const { data: authListener } = onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    // Quand l'application se ferme, on nettoie l'écouteur
     return () => {
+      // On nettoie l'écouteur quand le composant est démonté.
       authListener.subscription.unsubscribe();
     };
   }, []);
   
-  // La fonction qui décide quoi afficher
+  const handleSignOut = async () => {
+    await signOut();
+    setView('landing');
+  };
+
+  // La fonction qui décide quoi afficher, maintenant plus robuste.
   const renderView = () => {
-    if (!isInitialized) {
-        return <div className="text-white">Chargement...</div>;
+    if (isLoading) {
+      return <div className="text-white">Chargement...</div>;
     }
 
-    // Si l'utilisateur est connecté (il y a une session)...
-    if (session) {
-        return (
-            <div className="text-white text-center bg-gray-800 p-8 rounded-lg shadow-xl">
-                <h1 className="text-2xl font-bold">Bienvenue !</h1>
-                <p className="my-4">Vous êtes connecté en tant que {session.user.email}</p>
-                <button 
-                  onClick={() => signOut()} 
-                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors"
-                >
-                  Se Déconnecter
-                </button>
-            </div>
-        );
+    if (session && userProfile) {
+      // Si la session et le profil sont chargés, on affiche le bon tableau de bord.
+      if (userProfile.role === 'admin') {
+        return <AdminDashboardPage user={session.user} onSignOut={handleSignOut} />;
+      }
+      return <ClientDashboardPage user={session.user} onSignOut={handleSignOut} />;
     }
 
-    // Si l'utilisateur n'est PAS connecté, on affiche les pages publiques
+    // Si aucune session n'est active, on affiche les pages publiques.
     switch (view) {
       case 'clientLogin':
         return <ClientLoginPage setView={setView} />;

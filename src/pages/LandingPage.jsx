@@ -19,7 +19,7 @@ export default function LandingPage({ setView }) {
           Commander / Mon Compte
         </button>
         <button
-          onClick={() => setView('adminLogin')}
+          onClick={() => setView('clientLogin')}
           className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded transition duration-300"
         >
           Accès Administrateur

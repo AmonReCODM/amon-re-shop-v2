@@ -41,7 +41,13 @@ export default function ClientLoginPage({ setView }) {
         <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-2 border rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-500" required />
       </div>
       <div className="mb-6">
-        <PasswordInput name="password" id="password" value={formData.password} onChange={handleChange} label="Mot de passe" />
+        <label className="block text-gray-700 mb-2" htmlFor="password">Mot de passe</label>
+        <PasswordInput
+          name="password"
+          id="password"
+          value={formData.password}
+          onChange={handleChange}
+        />
       </div>
     </AuthForm>
   );
